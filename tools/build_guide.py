@@ -15,12 +15,48 @@ CODE_BACKGROUND = "F2F2F2"
 
 
 def add_bold_text(paragraph, text):
-    """Write plain text while keeping **bold** spans bold."""
-    for part in re.split(r"(\*\*.*?\*\*)", text):
-        if part.startswith("**") and part.endswith("**"):
-            paragraph.add_run(part[2:-2]).bold = True
+    """Write text while preserving Markdown bold and inline code."""
+    for part in re.split(r"(`[^`]+`|\*\*.*?\*\*)", text):
+        if part.startswith("`") and part.endswith("`"):
+            add_inline_code(paragraph, part[1:-1])
+        elif part.startswith("**") and part.endswith("**"):
+            for bold_part in re.split(r"(`[^`]+`)", part[2:-2]):
+                if bold_part.startswith("`") and bold_part.endswith("`"):
+                    run = add_inline_code(paragraph, bold_part[1:-1])
+                    run.bold = True
+                else:
+                    paragraph.add_run(bold_part).bold = True
         else:
             paragraph.add_run(part)
+
+
+def add_inline_code(paragraph, text):
+    run = paragraph.add_run(text)
+    run.font.name = "Consolas"
+    shading = OxmlElement("w:shd")
+    shading.set(qn("w:fill"), CODE_BACKGROUND)
+    run._r.get_or_add_rPr().append(shading)
+    return run
+
+
+def new_numbering_id(document):
+    numbering = document.part.numbering_part.element
+    style_num_pr = document.styles["List Number"]._element.pPr.find(qn("w:numPr"))
+    style_num_id = int(style_num_pr.find(qn("w:numId")).get(qn("w:val")))
+    abstract_num_id = numbering.num_having_numId(style_num_id).abstractNumId.val
+    return numbering.add_num(abstract_num_id).numId
+
+
+def set_numbering_id(paragraph, numbering_id):
+    paragraph_properties = paragraph._p.get_or_add_pPr()
+    numbering_properties = OxmlElement("w:numPr")
+    level = OxmlElement("w:ilvl")
+    level.set(qn("w:val"), "0")
+    number_id = OxmlElement("w:numId")
+    number_id.set(qn("w:val"), str(numbering_id))
+    numbering_properties.append(level)
+    numbering_properties.append(number_id)
+    paragraph_properties.append(numbering_properties)
 
 
 def table_cells(line):
@@ -67,12 +103,14 @@ def add_markdown_file(document, path):
     lines = path.read_text(encoding="utf-8").splitlines()
     in_code_block = False
     code_lines = []
+    current_numbering_id = None
     index = 0
 
     while index < len(lines):
         line = lines[index]
 
         if line.strip().startswith("```"):
+            current_numbering_id = None
             if in_code_block:
                 for code_line in code_lines:
                     add_code_line(document, code_line)
@@ -87,6 +125,9 @@ def add_markdown_file(document, path):
             code_lines.append(line)
             index += 1
             continue
+
+        if not re.match(r"^\s*\d+[.)]\s+", line):
+            current_numbering_id = None
 
         if line.strip().startswith("|") and index + 1 < len(lines):
             if is_table_separator(lines[index + 1]):
@@ -109,6 +150,9 @@ def add_markdown_file(document, path):
         elif re.match(r"^\s*\d+[.)]\s+", line):
             paragraph = document.add_paragraph(style="List Number")
             add_bold_text(paragraph, re.sub(r"^\s*\d+[.)]\s+", "", line))
+            if current_numbering_id is None:
+                current_numbering_id = new_numbering_id(document)
+            set_numbering_id(paragraph, current_numbering_id)
         elif line.strip():
             paragraph = document.add_paragraph()
             add_bold_text(paragraph, line.strip())
