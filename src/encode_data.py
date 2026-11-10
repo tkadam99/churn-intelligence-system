@@ -26,23 +26,48 @@ def encode_yes_no_columns(df: pd.DataFrame) -> pd.DataFrame:
     return encoded
 
 
+def encode_categorical_columns(df: pd.DataFrame) -> pd.DataFrame:
+    encoded = df.copy()
+    categorical_columns = [
+        "gender",
+        "MultipleLines",
+        "InternetService",
+        "OnlineSecurity",
+        "OnlineBackup",
+        "DeviceProtection",
+        "TechSupport",
+        "StreamingTV",
+        "StreamingMovies",
+        "Contract",
+        "PaymentMethod",
+    ]
+
+    for column in categorical_columns:
+        if column not in encoded.columns:
+            raise ValueError(f"Required categorical column is missing: {column}")
+
+    # customerID is an identifier, not a feature, and a model could memorize it.
+    encoded = encoded.drop(columns=["customerID"])
+
+    # The dropped category is implied when all other one-hot category columns are 0.
+    return pd.get_dummies(
+        encoded,
+        columns=categorical_columns,
+        dtype=int,
+        drop_first=True,
+    )
+
+
 if __name__ == "__main__":
     raw_data = load_raw_data()
     cleaned_data = clean_total_charges(raw_data)
     encoded_data = encode_yes_no_columns(cleaned_data)
-    columns = [
-        "Partner",
-        "Dependents",
-        "PhoneService",
-        "PaperlessBilling",
-        "Churn",
-    ]
+    final_data = encode_categorical_columns(encoded_data)
 
-    print("Data types before encoding:")
-    print(cleaned_data[columns].dtypes.to_string())
-    print("\nData types after encoding:")
-    print(encoded_data[columns].dtypes.to_string())
-    print("\nChurn value counts after encoding:")
-    print(encoded_data["Churn"].value_counts().sort_index().to_string())
-    print(f"\nRows before: {len(raw_data)}")
-    print(f"Rows after: {len(encoded_data)}")
+    print(f"Shape before encoding: {raw_data.shape}")
+    print(f"Shape after encoding: {final_data.shape}")
+    print("\nColumn names after encoding:")
+    print(final_data.columns.tolist())
+    print(f"\nFeature columns (excluding Churn): {len(final_data.columns) - 1}")
+    print("\nData type counts after encoding:")
+    print(final_data.dtypes.value_counts().to_string())
