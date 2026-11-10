@@ -113,16 +113,55 @@ def check_senior_citizen_values(df: pd.DataFrame) -> CheckResult:
     )
 
 
-if __name__ == "__main__":
-    data = load_raw_data()
-    checks = [
-        check_no_blank_strings(data),
-        check_unique_customer_ids(data),
-        check_no_duplicate_rows(data),
-        check_tenure_range(data),
-        check_monthly_charges_positive(data),
-        check_senior_citizen_values(data),
+def check_allowed_category_values(df: pd.DataFrame) -> CheckResult:
+    allowed_values = {
+        "Churn": {"Yes", "No"},
+        "Contract": {"Month-to-month", "One year", "Two year"},
+        "gender": {"Male", "Female"},
+        "Partner": {"Yes", "No"},
+        "Dependents": {"Yes", "No"},
+        "PhoneService": {"Yes", "No"},
+        "PaperlessBilling": {"Yes", "No"},
+    }
+    unexpected_values = {}
+
+    for column, allowed in allowed_values.items():
+        invalid = df.loc[~df[column].isin(allowed), column]
+        counts = invalid.value_counts(dropna=False)
+        if not counts.empty:
+            unexpected_values[column] = ", ".join(
+                f"{'<missing>' if pd.isna(value) else value} ({count})"
+                for value, count in counts.items()
+            )
+
+    details = (
+        "; ".join(
+            f"{column}: {values}" for column, values in unexpected_values.items()
+        )
+        if unexpected_values
+        else "All category values are allowed."
+    )
+    return CheckResult(
+        name="check_allowed_category_values",
+        passed=not unexpected_values,
+        details=details,
+    )
+
+
+def run_all_checks(df: pd.DataFrame) -> list[CheckResult]:
+    return [
+        check_no_blank_strings(df),
+        check_unique_customer_ids(df),
+        check_no_duplicate_rows(df),
+        check_tenure_range(df),
+        check_monthly_charges_positive(df),
+        check_senior_citizen_values(df),
+        check_allowed_category_values(df),
     ]
+
+
+if __name__ == "__main__":
+    checks = run_all_checks(load_raw_data())
     for result in checks:
         status = "PASS" if result.passed else "FAIL"
         print(f"{result.name}: {status} - {result.details}")
