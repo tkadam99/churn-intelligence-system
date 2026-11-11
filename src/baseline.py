@@ -32,13 +32,17 @@ def evaluate_dummy_baseline(X_train, y_train):
     }
 
 
-def build_logistic_pipeline():
+def build_logistic_pipeline(class_weight=None):
     return Pipeline(
         [
             ("scaler", StandardScaler()),
             (
                 "logistic_regression",
-                LogisticRegression(max_iter=1000, random_state=42),
+                LogisticRegression(
+                    max_iter=1000,
+                    random_state=42,
+                    class_weight=class_weight,
+                ),
             ),
         ]
     )
