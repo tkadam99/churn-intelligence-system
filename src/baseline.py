@@ -32,8 +32,8 @@ def evaluate_dummy_baseline(X_train, y_train):
     }
 
 
-def evaluate_logistic_regression(X_train, y_train):
-    model = Pipeline(
+def build_logistic_pipeline():
+    return Pipeline(
         [
             ("scaler", StandardScaler()),
             (
@@ -42,6 +42,10 @@ def evaluate_logistic_regression(X_train, y_train):
             ),
         ]
     )
+
+
+def evaluate_logistic_regression(X_train, y_train):
+    model = build_logistic_pipeline()
     folds = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     scoring = {
         "accuracy": "accuracy",
