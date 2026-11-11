@@ -7,3 +7,4 @@ pytest
 scikit-learn
 xgboost
 tensorflow
+torch
