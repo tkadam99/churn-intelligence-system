@@ -1,0 +1,21 @@
+{
+  "roc_auc": 0.841778397788628,
+  "average_precision": 0.6323718834825269,
+  "accuracy": 0.7494677075940384,
+  "precision": 0.5193370165745856,
+  "recall": 0.7540106951871658,
+  "f1": 0.6150490730643402,
+  "flagged_customers": 543,
+  "true_negatives": 774,
+  "false_positives": 261,
+  "false_negatives": 92,
+  "true_positives": 282,
+  "frozen_threshold": 0.3,
+  "n_test_rows": 1409,
+  "n_test_churners": 374,
+  "reference_at_threshold_0_5": {
+    "precision": 0.6583850931677019,
+    "recall": 0.5668449197860963,
+    "f1": 0.6091954022988506
+  }
+}
