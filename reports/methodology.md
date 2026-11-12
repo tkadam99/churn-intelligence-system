@@ -106,7 +106,7 @@ The documented run sequence for recreating the project outputs is:
 
 1. Prepare and split data: `.\.venv\Scripts\python.exe -m src.prepare_data`.
 2. Clean the raw data and display quality checks on the cleaned data: `.\.venv\Scripts\python.exe -m src.clean_data`.
-3. Run leakage checks: `.\.venv\Scripts\python.exe -m src.leakage_checks`. The separate command `.\.venv\Scripts\python.exe -m src.run_quality_report` loads the raw data and rewrites `reports/data_quality_report.md` with the raw-data check results.
+3. Run leakage checks: `.\.venv\Scripts\python.exe -m src.leakage_checks`. The command `.\.venv\Scripts\python.exe -m src.run_quality_report` loads the raw data and rewrites `reports/data_quality_report.md` with raw-data results; adding `--cleaned` writes the raw-versus-cleaned comparison to `reports/data_quality_report_after_cleaning.md` without overwriting either report.
 4. Compare the six models on training data: `.\.venv\Scripts\python.exe -m src.torch_model`.
 5. Run the logistic and XGBoost searches on training data: `.\.venv\Scripts\python.exe -m src.tuning`.
 6. Freeze the selected model and threshold using training data: `.\.venv\Scripts\python.exe -m src.final_model`.
@@ -114,6 +114,6 @@ The documented run sequence for recreating the project outputs is:
 8. Calculate the saved test confidence intervals: `.\.venv\Scripts\python.exe -m src.bootstrap_intervals`.
 9. Training-only diagnostics and explanations can then be reproduced with `.\.venv\Scripts\python.exe -m src.error_analysis` and `.\.venv\Scripts\python.exe -m src.explainability`.
 
-The automated test suite is run with `.\.venv\Scripts\python.exe -m pytest -v`; it collected and passed 49 tests in the recorded run.
+The automated test suite is run with `.\.venv\Scripts\python.exe -m pytest -v`; it collected and passed 50 tests in the recorded run.
 
 The data split, cross-validation shuffles, model random states, bootstrap procedure, and neural-network seed use 42 where configured. The split uses an 80/20 stratified division; cross-validation uses five stratified folds. The frozen test evaluation should not be repeated as a tuning step.
