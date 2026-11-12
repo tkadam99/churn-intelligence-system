@@ -8,3 +8,4 @@ scikit-learn
 xgboost
 tensorflow
 torch
+matplotlib
