@@ -7,6 +7,7 @@ import matplotlib
 # Select a file-rendering backend before plotting imports so no window opens.
 matplotlib.use("Agg")
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import shap
@@ -14,9 +15,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
 from src.prepare_data import load_prepared_data, split_data
-
-
-import matplotlib.pyplot as plt
 
 
 def compute_shap_values(pipeline, X_train):
@@ -128,6 +126,86 @@ def find_correlated_pairs(X, min_abs=0.7):
                 pairs.append((left_column, right_column, correlation))
 
     return sorted(pairs, key=lambda pair: abs(pair[2]), reverse=True)
+
+
+def combine_identical_columns(shap_df, groups, names):
+    if len(groups) != len(names):
+        raise ValueError("Each identical-column group must have one output name.")
+
+    combined = shap_df.copy()
+    insertions = []
+    for group, name in zip(groups, names):
+        missing_columns = [column for column in group if column not in combined]
+        if missing_columns:
+            raise ValueError(f"SHAP columns are missing: {missing_columns}")
+        insertion_index = min(combined.columns.get_loc(column) for column in group)
+        summed_values = combined[group].sum(axis=1)
+        combined = combined.drop(columns=group)
+        insertions.append((insertion_index, name, summed_values))
+
+    for insertion_index, name, values in sorted(insertions, reverse=True):
+        combined.insert(min(insertion_index, len(combined.columns)), name, values)
+
+    return combined
+
+
+def explain_customer(
+    row_features,
+    row_shap,
+    base_value,
+    raw_score,
+    probability,
+    threshold,
+    top_n=5,
+):
+    contributions_sum = float(row_shap.sum())
+    status = (
+        "at or above"
+        if probability >= threshold
+        else "below"
+    )
+    lines = [
+        f"Predicted churn probability: {probability:.4f}",
+        f"This is {status} the frozen threshold of {threshold:.2f}.",
+        f"Base value (log-odds): {base_value:.4f}",
+        f"Sum of feature contributions (log-odds): {contributions_sum:.4f}",
+        (
+            f"Raw model score (log-odds): {raw_score:.4f} "
+            f"(base + contributions = {base_value + contributions_sum:.4f})"
+        ),
+        "",
+        f"Top {top_n} contributions pushing toward churn:",
+    ]
+
+    positive = row_shap[row_shap > 0].nlargest(top_n)
+    if positive.empty:
+        lines.append("None")
+    for feature, contribution in positive.items():
+        if feature not in row_features:
+            raise ValueError(f"Customer feature value is missing for {feature!r}.")
+        # Odds are p / (1 - p); a zero contribution means no change in odds.
+        odds_multiplier = float(np.exp(contribution))
+        lines.append(
+            f"- {feature}: value={row_features[feature]}, "
+            f"contribution={contribution:+.4f} log-odds; "
+            f"multiplies the odds of churn by {odds_multiplier:.1f}"
+        )
+
+    lines.extend(["", f"Top {top_n} contributions pushing away from churn:"])
+    negative = row_shap[row_shap < 0].nsmallest(top_n)
+    if negative.empty:
+        lines.append("None")
+    for feature, contribution in negative.items():
+        if feature not in row_features:
+            raise ValueError(f"Customer feature value is missing for {feature!r}.")
+        odds_multiplier = float(np.exp(contribution))
+        lines.append(
+            f"- {feature}: value={row_features[feature]}, "
+            f"contribution={contribution:+.4f} log-odds; "
+            f"multiplies the odds of churn by {odds_multiplier:.1f}"
+        )
+
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":
@@ -247,3 +325,59 @@ if __name__ == "__main__":
             )
     else:
         print("None")
+
+    identical_groups = find_duplicate_columns(X_train)
+    combined_names = [
+        "No internet service (7 identical columns combined)"
+        if len(group) == 7
+        else f"{group[0]} ({len(group)} identical columns combined)"
+        for group in identical_groups
+    ]
+    customer_shap = combine_identical_columns(
+        shap_table,
+        identical_groups,
+        combined_names,
+    )
+    probabilities = pipeline.predict_proba(X_train)[:, 1]
+    raw_scores = pipeline.decision_function(X_train)
+    selected_customers = [
+        ("Highest risk", int(np.argmax(probabilities))),
+        (
+            "Near the threshold",
+            int(np.argmin(np.abs(probabilities - config["threshold"]))),
+        ),
+        ("Lowest risk", int(np.argmin(probabilities))),
+    ]
+
+    print("\nIndividual training-customer explanations:")
+    for label, position in selected_customers:
+        customer_index = X_train.index[position]
+        row_features = X_train.iloc[position].copy()
+        row_shap = customer_shap.iloc[position]
+        for group, combined_name in zip(identical_groups, combined_names):
+            row_features[combined_name] = X_train.iloc[position][group[0]]
+
+        raw_score = float(raw_scores[position])
+        reconstructed_score = base_value + float(row_shap.sum())
+        check_passed = abs(reconstructed_score - raw_score) <= 1e-6
+        print(f"\n{label} (X_train row index: {customer_index})")
+        print(
+            "Customer additivity check: "
+            f"{'PASS' if check_passed else 'FAIL'} "
+            f"(base + contributions = {reconstructed_score:.12f}, "
+            f"raw score = {raw_score:.12f})"
+        )
+        if not check_passed:
+            raise RuntimeError(
+                f"SHAP contributions do not reconstruct customer {customer_index}."
+            )
+        print(
+            explain_customer(
+                row_features,
+                row_shap,
+                base_value,
+                raw_score,
+                float(probabilities[position]),
+                config["threshold"],
+            )
+        )
