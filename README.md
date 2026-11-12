@@ -1,5 +1,8 @@
 # Churn Intelligence System
 
+End-to-end customer churn prediction: PostgreSQL analysis, data quality checks, scikit-learn/TensorFlow/PyTorch models, validation and tuning, SHAP explainability, and stakeholder reporting.
+Topics: machine-learning, churn-prediction, pytorch, tensorflow, xgboost, shap, postgresql, scikit-learn, data-quality
+
 This project prepares customer data, compares machine-learning models, and evaluates a frozen churn model using a held-back test set. It also summarizes churn patterns and explains how the frozen model makes predictions.
 
 ## Key results
