@@ -23,7 +23,7 @@ def get_oof_probabilities(model, X_train, y_train):
 def threshold_table(y_true, probabilities, thresholds):
     rows = []
     for threshold in thresholds:
-        predictions = (probabilities >= threshold).astype(int)
+        predictions = (np.asarray(probabilities) >= threshold).astype(int)
         rows.append(
             {
                 "threshold": threshold,
