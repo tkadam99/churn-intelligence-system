@@ -2,7 +2,7 @@
 
 ## Objective and data
 
-This project asks whether customer information can help rank and identify customers who are labeled as having churned. It uses the local file `WA_Fn-UseC_-Telco-Customer-Churn.csv`. The recorded raw-data inspection found 7,043 rows and 21 columns. There were 1,869 churn labels among 7,043 customers, an overall churn rate of 26.54%.
+This project asks whether customer information can help rank and identify customers who are labeled as having churned. It uses the local file `WA_Fn-UseC_-Telco-Customer-Churn.csv` uploaded by BlastChar. The recorded raw-data inspection found 7,043 rows and 21 columns. There were 1,869 churn labels among 7,043 customers, an overall churn rate of 26.54%.
 
 The project notes describe the data as public, but do not identify its publisher or original download location. The filename and local row and column counts are recorded; a more specific origin is not available in the evidence used here.
 
@@ -40,13 +40,13 @@ All three checks passed. They are targeted safeguards, not proof that every poss
 
 The baseline and learned models were compared on the training partition with the same five-fold stratified cross-validation, shuffled with `random_state=42`. The reported values are the mean validation scores across folds. Accuracy, precision, recall, and F1 use predicted classes; ROC-AUC measures the ranking of positive cases from probability scores. Precision, recall, and F1 use a zero-division-safe convention.
 
-| Score | Majority-class baseline | Logistic regression | Random forest | XGBoost | Keras neural network | PyTorch neural network |
-|---|---:|---:|---:|---:|---:|---:|
-| Accuracy | 0.735 | 0.802 | 0.790 | 0.804 | 0.800 | 0.803 |
-| Precision | 0.000 | 0.653 | 0.641 | 0.665 | 0.662 | 0.668 |
-| Recall | 0.000 | 0.545 | 0.479 | 0.524 | 0.503 | 0.512 |
-| F1 | 0.000 | 0.594 | 0.548 | 0.586 | 0.570 | 0.579 |
-| ROC-AUC | 0.500 | 0.846 | 0.825 | 0.846 | 0.839 | 0.840 |
+| Score     | Majority-class baseline | Logistic regression | Random forest | XGBoost | Keras neural network | PyTorch neural network |
+| --------- | ----------------------: | ------------------: | ------------: | ------: | -------------------: | ---------------------: |
+| Accuracy  |                   0.735 |               0.802 |         0.790 |   0.804 |                0.800 |                  0.803 |
+| Precision |                   0.000 |               0.653 |         0.641 |   0.665 |                0.662 |                  0.668 |
+| Recall    |                   0.000 |               0.545 |         0.479 |   0.524 |                0.503 |                  0.512 |
+| F1        |                   0.000 |               0.594 |         0.548 |   0.586 |                0.570 |                  0.579 |
+| ROC-AUC   |                   0.500 |               0.846 |         0.825 |   0.846 |                0.839 |                  0.840 |
 
 These are rounded results from one comparison run, not a statistical test. The baseline predicts the most common class, so its accuracy is not evidence that it identifies churners. Small differences in the table do not establish which model will perform best on future customers.
 
@@ -68,7 +68,7 @@ Out-of-fold (OOF) means that each training row received a prediction from a fold
 
 The threshold table used out-of-fold training probabilities and evaluated cutoffs from 0.10 through 0.90; F1 peaked at 0.30. Two illustrative cost scenarios produced different preferred cutoffs, 0.10 and 0.35. Their inputs were assumptions rather than company costs, and neither scenario was used to set the frozen threshold.
 
-A separate class-weight comparison used out-of-fold training probabilities. At the 0.5 cutoff, balancing class weights raised recall from 0.545 to 0.801 while ROC-AUC remained 0.846 at the displayed precision. Across the tested threshold grid, the best-F1 ceiling was similar: 0.635 without balancing and 0.638 with balancing. The operating point changed, but this comparison did not replace the frozen model or its threshold.
+A separate class-weight comparison used out-of-fold training probabilities. At the 0.5 cutoff, balancing class weights raised recall from 0.545 to 0.801 while ROC-AUC remained 0.846 to three decimals. Across the tested threshold grid, the best-F1 ceiling was similar: 0.635 without balancing and 0.638 with balancing. The operating point changed, but this comparison did not replace the frozen model or its threshold.
 
 ## Final evaluation
 
@@ -114,6 +114,6 @@ The documented run sequence for recreating the project outputs is:
 8. Calculate the saved test confidence intervals: `.\.venv\Scripts\python.exe -m src.bootstrap_intervals`.
 9. Training-only diagnostics and explanations can then be reproduced with `.\.venv\Scripts\python.exe -m src.error_analysis` and `.\.venv\Scripts\python.exe -m src.explainability`.
 
-The automated test suite is run with `.\.venv\Scripts\python.exe -m pytest -v`; it collected and passed 40 tests in the recorded run.
+The automated test suite is run with `.\.venv\Scripts\python.exe -m pytest -v`; it collected and passed 49 tests in the recorded run.
 
 The data split, cross-validation shuffles, model random states, bootstrap procedure, and neural-network seed use 42 where configured. The split uses an 80/20 stratified division; cross-validation uses five stratified folds. The frozen test evaluation should not be repeated as a tuning step.
