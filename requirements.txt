@@ -9,3 +9,4 @@ xgboost
 tensorflow
 torch
 matplotlib
+shap
