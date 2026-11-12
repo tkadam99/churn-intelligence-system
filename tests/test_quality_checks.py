@@ -1,5 +1,6 @@
 import pandas as pd
 
+from src.clean_data import clean_total_charges
 from src.quality_checks import (
     check_allowed_category_values,
     check_monthly_charges_positive,
@@ -43,6 +44,16 @@ def test_whitespace_only_string_fails():
 
     # Assert
     assert result.passed is False
+
+
+def test_clean_total_charges_fixes_whitespace_only_quality_failure():
+    data = pd.DataFrame({"TotalCharges": [" "]})
+
+    raw_result = check_no_blank_strings(data)
+    cleaned_result = check_no_blank_strings(clean_total_charges(data))
+
+    assert raw_result.passed is False
+    assert cleaned_result.passed is True
 
 
 def test_missing_value_and_numbers_pass():
